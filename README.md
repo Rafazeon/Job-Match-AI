@@ -1,104 +1,104 @@
-# 🎯 Job Vacancies — Buscador Inteligente de Vagas
+# 🎯 Job Vacancies — AI-Powered Job Finder
 
-Aplicação [Next.js](https://nextjs.org) que analisa o currículo do candidato com IA e busca automaticamente vagas de emprego compatíveis com o seu perfil, exibindo um dashboard interativo com análise detalhada de compatibilidade.
-
----
-
-## 🚀 Como funciona
-
-1. **Upload do currículo** — O candidato faz o upload do seu currículo (PDF ou texto).
-2. **Análise com RAG** — O currículo é enviado para o [eBotMaker](https://www.ebotmaker.ai), que cria um bot com RAG (Retrieval-Augmented Generation) para extrair habilidades, experiências e perfil do candidato.
-3. **Extração de perfil** — A API da OpenAI (GPT-4o-mini) extrai nome e senioridade do candidato a partir da análise.
-4. **Busca de vagas** — O [Manus AI](https://manus.im) navega na web e busca vagas compatíveis com o perfil, retornando um JSON estruturado com título, empresa, localização, salário, tags, análise de compatibilidade e probabilidade de aprovação.
-5. **Dashboard interativo** — As vagas são exibidas em cards com filtros por compatibilidade, modalidade (remoto/presencial) e área, além de modal com detalhes completos da vaga e análise do candidato.
+A [Next.js](https://nextjs.org) application that analyzes the candidate's resume with AI and automatically searches for compatible job vacancies, displaying an interactive dashboard with detailed compatibility analysis.
 
 ---
 
-## 🔑 APIs necessárias
+## 🚀 How it works
 
-### 1. [eBotMaker](https://www.ebotmaker.ai) — RAG e análise de currículo
+1. **Resume upload** — The candidate uploads their resume (PDF, DOCX, or TXT).
+2. **RAG Analysis** — The resume is sent to [eBotMaker](https://www.ebotmaker.ai), which creates a bot with RAG (Retrieval-Augmented Generation) to extract the candidate's skills, experience, and profile.
+3. **Profile extraction** — The OpenAI API (GPT-4o-mini) extracts the candidate's name and seniority level from the analysis.
+4. **Job search** — [Manus AI](https://manus.im) autonomously browses the web to find compatible vacancies, returning a structured JSON with title, company, location, salary, tags, compatibility analysis, and approval probability.
+5. **Interactive dashboard** — Vacancies are displayed as cards with filters by compatibility, work mode (remote/on-site), and area, plus a modal with full vacancy details and candidate analysis.
 
-Plataforma de IA com suporte a RAG utilizada para criar bots por candidato, fazer upload do currículo e realizar a análise de perfil via chat.
+---
 
-| Variável de ambiente | Descrição |
+## 🔑 Required APIs
+
+### 1. [eBotMaker](https://www.ebotmaker.ai) — RAG & Resume Analysis
+
+AI platform with RAG support used to create per-candidate bots, upload resumes, and perform profile analysis via chat.
+
+| Environment variable | Description |
 |---|---|
-| `NEXT_PUBLIC_API_IA_URL` | URL base da API do eBotMaker (ex: `https://api.ebotmaker.ai`) |
-| `NEXT_PUBLIC_API_IA_TOKEN` | Token de autenticação (`x-api-key`) da sua conta eBotMaker |
-| `BOT_EBOTMAKER_WEBHOOK_ID` | ID do webhook configurado no painel do eBotMaker para criação de bots |
+| `NEXT_PUBLIC_API_IA_URL` | eBotMaker API base URL (e.g. `https://api.ebotmaker.ai`) |
+| `NEXT_PUBLIC_API_IA_TOKEN` | Authentication token (`x-api-key`) from your eBotMaker account |
+| `BOT_EBOTMAKER_WEBHOOK_ID` | Webhook ID configured in the eBotMaker dashboard for bot creation |
 
-> Acesse [www.ebotmaker.ai](https://www.ebotmaker.ai) para criar sua conta e obter as credenciais.
+> Visit [www.ebotmaker.ai](https://www.ebotmaker.ai) to create your account and get your credentials.
 
 ---
 
-### 2. [OpenAI](https://platform.openai.com) — Extração de perfil do candidato
+### 2. [OpenAI](https://platform.openai.com) — Candidate Profile Extraction
 
-Utilizado para extrair nome e nível de senioridade do candidato a partir da análise do currículo. O modelo utilizado é o **GPT-4o-mini**.
+Used to extract the candidate's name and seniority level from the resume analysis. The model used is **GPT-4o-mini**.
 
-| Variável de ambiente | Descrição |
+| Environment variable | Description |
 |---|---|
-| `OPENAI_API_KEY` | Chave de API da OpenAI (`sk-proj-...`) |
+| `OPENAI_API_KEY` | OpenAI API key (`sk-proj-...`) |
 
-> Acesse [platform.openai.com/api-keys](https://platform.openai.com/api-keys) para gerar sua chave.
+> Visit [platform.openai.com/api-keys](https://platform.openai.com/api-keys) to generate your key.
 
 ---
 
-### 3. [Manus AI](https://manus.im) — Busca autônoma de vagas
+### 3. [Manus AI](https://manus.im) — Autonomous Job Search
 
-Agente de IA que navega na web de forma autônoma para encontrar vagas compatíveis com o perfil do candidato e retorna um JSON estruturado com os dados de cada vaga.
+An AI agent that autonomously browses the web to find vacancies compatible with the candidate's profile, returning a structured JSON with each vacancy's data.
 
-| Variável de ambiente | Descrição |
+| Environment variable | Description |
 |---|---|
-| `MANUS_API_KEY` | Chave de API do Manus AI |
+| `MANUS_API_KEY` | Manus AI API key |
 
-> Acesse [manus.im](https://manus.im) para criar sua conta e obter a chave de API.
+> Visit [manus.im](https://manus.im) to create your account and get your API key.
 
 ---
 
-## ⚙️ Configuração
+## ⚙️ Setup
 
-1. Clone o repositório:
+1. Clone the repository:
 
 ```bash
-git clone https://github.com/seu-usuario/job-vacancies.git
+git clone https://github.com/your-username/job-vacancies.git
 cd job-vacancies
 ```
 
-2. Instale as dependências:
+2. Install dependencies:
 
 ```bash
 npm install
 ```
 
-3. Crie o arquivo `.env.local` na raiz do projeto com as variáveis:
+3. Create a `.env.local` file at the project root with the following variables:
 
 ```env
-# eBotMaker (RAG + análise de currículo)
+# eBotMaker (RAG + resume analysis)
 NEXT_PUBLIC_API_IA_URL=https://api.ebotmaker.ai
-NEXT_PUBLIC_API_IA_TOKEN=seu_token_ebotmaker
-BOT_EBOTMAKER_WEBHOOK_ID=seu_webhook_id
+NEXT_PUBLIC_API_IA_TOKEN=your_ebotmaker_token
+BOT_EBOTMAKER_WEBHOOK_ID=your_webhook_id
 
-# OpenAI (extração de perfil)
+# OpenAI (profile extraction)
 OPENAI_API_KEY=sk-proj-...
 
-# Manus AI (busca de vagas)
-MANUS_API_KEY=sua_chave_manus
+# Manus AI (job search)
+MANUS_API_KEY=your_manus_key
 ```
 
-4. Inicie o servidor de desenvolvimento:
+4. Start the development server:
 
 ```bash
 npm run dev
 ```
 
-5. Acesse [http://localhost:3000](http://localhost:3000) no navegador.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🛠️ Tecnologias
+## 🛠️ Tech Stack
 
-- [Next.js 14](https://nextjs.org) — Framework React com App Router
-- [Tailwind CSS](https://tailwindcss.com) — Estilização
-- [Axios](https://axios-http.com) — Requisições HTTP
-- [eBotMaker](https://www.ebotmaker.ai) — RAG e análise de currículo
-- [OpenAI GPT-4o-mini](https://platform.openai.com) — Extração de perfil
-- [Manus AI](https://manus.im) — Agente autônomo de busca de vagas
+- [Next.js 14](https://nextjs.org) — React framework with App Router
+- [Tailwind CSS](https://tailwindcss.com) — Styling
+- [Axios](https://axios-http.com) — HTTP requests
+- [eBotMaker](https://www.ebotmaker.ai) — RAG & resume analysis
+- [OpenAI GPT-4o-mini](https://platform.openai.com) — Profile extraction
+- [Manus AI](https://manus.im) — Autonomous job search agent
