@@ -1,48 +1,39 @@
-# 🎯 Job Vacancies — AI-Powered Job Finder
+# Job Vacancies — AI-Powered Job Finder
 
 A [Next.js](https://nextjs.org) application that analyzes the candidate's resume with AI and automatically searches for compatible job vacancies, displaying an interactive dashboard with detailed compatibility analysis.
 
 ---
 
-## 🚀 How it works
+## How it works
 
 1. **Resume upload** — The candidate uploads their resume (PDF, DOCX, or TXT).
-2. **RAG Analysis** — The resume is sent to [eBotMaker](https://www.ebotmaker.ai), which creates a bot with RAG (Retrieval-Augmented Generation) to extract the candidate's skills, experience, and profile.
-3. **Profile extraction** — The OpenAI API (GPT-4o-mini) extracts the candidate's name and seniority level from the analysis.
+2. **OpenAI indexing** — The resume is uploaded to the OpenAI Files API and indexed in a Vector Store, enabling semantic search (RAG) over the document.
+3. **Profile extraction** — The OpenAI Responses API (`gpt-4.1-mini` + `file_search`) reads the resume and extracts the candidate's full profile: skills, experience, seniority, stack, and more.
 4. **Job search** — [Manus AI](https://manus.im) autonomously browses the web to find compatible vacancies, returning a structured JSON with title, company, location, salary, tags, compatibility analysis, and approval probability.
-5. **Interactive dashboard** — Vacancies are displayed as cards with filters by compatibility, work mode (remote/on-site), and area, plus a modal with full vacancy details and candidate analysis.
+5. **Vacancies indexed** — The found vacancies JSON is uploaded to the same Vector Store as the resume, so the chat can answer questions about specific vacancies with full context.
+6. **Interactive dashboard** — Vacancies are displayed as cards with filters by compatibility, work mode (remote/on-site), and area, plus a modal with full vacancy details and candidate analysis.
+7. **Chat with AI** — The candidate can chat with the AI about their resume, the found vacancies, interview tips, and more — the model has access to both the resume and the vacancies via `file_search`.
 
 ---
 
-## 🔑 Required APIs
+## Required APIs
 
-### 1. [eBotMaker](https://www.ebotmaker.ai) — RAG & Resume Analysis
+### 1. [OpenAI](https://platform.openai.com) — Resume Analysis, RAG & Chat
 
-AI platform with RAG support used to create per-candidate bots, upload resumes, and perform profile analysis via chat.
-
-| Environment variable | Description |
-|---|---|
-| `NEXT_PUBLIC_API_IA_URL` | eBotMaker API base URL (e.g. `https://api.ebotmaker.ai`) |
-| `NEXT_PUBLIC_API_IA_TOKEN` | Authentication token (`x-api-key`) from your eBotMaker account |
-| `BOT_EBOTMAKER_WEBHOOK_ID` | Webhook ID configured in the eBotMaker dashboard for bot creation |
-
-> Visit [www.ebotmaker.ai](https://www.ebotmaker.ai) to create your account and get your credentials.
-
----
-
-### 2. [OpenAI](https://platform.openai.com) — Candidate Profile Extraction
-
-Used to extract the candidate's name and seniority level from the resume analysis. The model used is **GPT-4o-mini**.
+Used for everything related to AI: resume upload to Files API, Vector Store indexing, profile extraction, vacancy query generation, and streaming chat.
 
 | Environment variable | Description |
 |---|---|
 | `OPENAI_API_KEY` | OpenAI API key (`sk-proj-...`) |
 
+Model used:
+- **`gpt-4.1-mini`** — all AI tasks: resume analysis, query generation, chat (via Responses API + `file_search`), and candidate profile extraction
+
 > Visit [platform.openai.com/api-keys](https://platform.openai.com/api-keys) to generate your key.
 
 ---
 
-### 3. [Manus AI](https://manus.im) — Autonomous Job Search
+### 2. [Manus AI](https://manus.im) — Autonomous Job Search
 
 An AI agent that autonomously browses the web to find vacancies compatible with the candidate's profile, returning a structured JSON with each vacancy's data.
 
@@ -54,7 +45,7 @@ An AI agent that autonomously browses the web to find vacancies compatible with 
 
 ---
 
-## ⚙️ Setup
+## Setup
 
 1. Clone the repository:
 
@@ -69,18 +60,13 @@ cd job-vacancies
 npm install
 ```
 
-3. Create a `.env.local` file at the project root with the following variables:
+3. Create a `.env.local` file at the project root:
 
 ```env
-# eBotMaker (RAG + resume analysis)
-NEXT_PUBLIC_API_IA_URL=https://api.ebotmaker.ai
-NEXT_PUBLIC_API_IA_TOKEN=your_ebotmaker_token
-BOT_EBOTMAKER_WEBHOOK_ID=your_webhook_id
-
-# OpenAI (profile extraction)
+# OpenAI (resume indexing, RAG, chat)
 OPENAI_API_KEY=sk-proj-...
 
-# Manus AI (job search)
+# Manus AI (autonomous job search)
 MANUS_API_KEY=your_manus_key
 ```
 
@@ -94,11 +80,45 @@ npm run dev
 
 ---
 
-## 🛠️ Tech Stack
+## Architecture
 
-- [Next.js 14](https://nextjs.org) — React framework with App Router
+```
+User uploads resume
+        │
+        ▼
+POST /api/upload
+  └── OpenAI Files API  →  file uploaded
+  └── OpenAI Vector Store  →  resume indexed
+        │
+        ▼
+POST /api/chat/send  (profile extraction)
+  └── gpt-4.1-mini + file_search  →  full resume analysis text
+        │
+        ▼
+POST /api/chat/send  (query generation)
+  └── gpt-4.1-mini + file_search  →  search query string
+        │
+        ▼
+POST /api/manus  (job search)
+  └── Manus AI  →  vacancies JSON
+        │
+        ▼
+PATCH /api/upload  (index vacancies)
+  └── OpenAI Files API  →  vagas_encontradas.json uploaded
+  └── same Vector Store  →  vacancies indexed alongside resume
+        │
+        ▼
+POST /api/chat/stream  (chat)
+  └── gpt-4.1-mini + file_search  →  streams response
+      (has access to both resume and vacancies)
+```
+
+---
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org) — React framework with App Router
 - [Tailwind CSS](https://tailwindcss.com) — Styling
-- [Axios](https://axios-http.com) — HTTP requests
-- [eBotMaker](https://www.ebotmaker.ai) — RAG & resume analysis
-- [OpenAI GPT-4o-mini](https://platform.openai.com) — Profile extraction
+- [OpenAI Node SDK](https://github.com/openai/openai-node) — Files API, Vector Stores, Responses API (RAG + streaming chat)
 - [Manus AI](https://manus.im) — Autonomous job search agent
+- [uuid](https://github.com/uuidjs/uuid) — Local session management
