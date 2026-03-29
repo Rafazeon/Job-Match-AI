@@ -1,28 +1,19 @@
-import axios from "axios";
-import { apiIaUrl, apiIaToken } from "./constant";
+import { v4 as uuidv4 } from "uuid";
 
 export interface SessionResponse {
   sessionId: string;
 }
 
-export async function createSession(
-  botId: string,
-  clientId: string,
-  name?: string
-): Promise<SessionResponse> {
-  const response = await axios.post(
-    `${apiIaUrl}/sessions/client/external`,
-    {
-      botId,
-      clientId,
-      name: name || "Usuário",
-    },
-    {
-      headers: {
-        "x-api-key": apiIaToken,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-  return response.data;
+/**
+ * No novo fluxo com OpenAI, a sessão é gerenciada localmente.
+ * O sessionId é apenas um identificador local para o histórico de chat
+ * armazenado no localStorage.
+ */
+export function createSession(
+  _botId: string,
+  _clientId: string,
+  _name?: string
+): SessionResponse {
+  const sessionId = uuidv4();
+  return { sessionId };
 }

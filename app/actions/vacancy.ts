@@ -1,4 +1,3 @@
-import { apiIaUrl, apiIaToken } from "./constant";
 import { searchVacanciesWithManus, ManusVacancy } from "./manus";
 
 export interface JobVacancy {
@@ -19,76 +18,33 @@ export interface JobVacancy {
   color?: string;
 }
 
-// Coleta todo o texto de um stream SSE e retorna como string
-async function collectStream(sessionId: string, question: string): Promise<string> {
-  const response = await fetch(`${apiIaUrl}/documents/client/external/stream`, {
+/**
+ * Chama /api/chat/send com o vector store do currículo e retorna o texto completo.
+ */
+async function callChatSend(
+  vectorStoreId: string,
+  question: string,
+  jsonMode = false
+): Promise<string> {
+  const response = await fetch("/api/chat/send", {
     method: "POST",
-    headers: {
-      "x-api-key": apiIaToken || "",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sessionId,
-      question,
-      language: "pt-BR",
-      saveHistory: false,
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vectorStoreId, question, jsonMode }),
   });
 
   if (!response.ok) {
     throw new Error(`Erro na API: ${response.statusText}`);
   }
 
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error("Não foi possível ler a resposta");
-
-  const decoder = new TextDecoder();
-  let fullText = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const chunk = decoder.decode(value, { stream: true });
-    for (const line of chunk.split("\n")) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6).trim();
-        if (data === "[DONE]") return fullText;
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.text) fullText += parsed.text;
-          if (parsed.error) throw new Error(parsed.error);
-        } catch {
-          // ignora linhas inválidas
-        }
-      }
-    }
-  }
-
-  return fullText;
-}
-
-// Tenta extrair JSON de uma string que pode ter texto ao redor
-function extractJSON(text: string): unknown {
-  const arrayMatch = text.match(/\[[\s\S]*\]/);
-  if (arrayMatch) {
-    try {
-      return JSON.parse(arrayMatch[0]);
-    } catch { /* continua */ }
-  }
-  const objMatch = text.match(/\{[\s\S]*\}/);
-  if (objMatch) {
-    try {
-      return JSON.parse(objMatch[0]);
-    } catch { /* continua */ }
-  }
-  return null;
+  const data = await response.json();
+  if (!data.success) throw new Error(data.error || "Erro desconhecido");
+  return data.text || "";
 }
 
 /**
  * Passo 1: Extrai análise completa do currículo em texto rico
  */
-export async function extractResumeInfo(sessionId: string): Promise<string> {
+export async function extractResumeInfo(vectorStoreId: string): Promise<string> {
   const prompt = `Faça uma análise completa e detalhada do currículo enviado, extraindo todas as informações relevantes. Escreva em texto corrido, sendo o mais rico e completo possível:
 
 - Identidade profissional: cargo atual ou desejado, área de atuação e nível de senioridade
@@ -103,13 +59,16 @@ export async function extractResumeInfo(sessionId: string): Promise<string> {
 
 Seja detalhado — quanto mais contexto, melhor será o match com as vagas.`;
 
-  return await collectStream(sessionId, prompt);
+  return await callChatSend(vectorStoreId, prompt);
 }
 
 /**
  * Passo 2: Gera uma query de busca objetiva a partir da análise do currículo
  */
-export async function buildVacancyQuery(sessionId: string, resumeInfo: string): Promise<string> {
+export async function buildVacancyQuery(
+  vectorStoreId: string,
+  resumeInfo: string
+): Promise<string> {
   const prompt = `Com base na análise do currículo abaixo, gere UMA query de busca curta e objetiva para encontrar vagas compatíveis.
 
 A query deve conter apenas: cargo principal + nível de senioridade + principais tecnologias/habilidades (máx. 5) + localização.
@@ -121,7 +80,7 @@ Desenvolvedor Frontend Pleno React TypeScript Next.js São Paulo
 ANÁLISE DO CURRÍCULO:
 ${resumeInfo}`;
 
-  const query = await collectStream(sessionId, prompt);
+  const query = await callChatSend(vectorStoreId, prompt);
   return query.trim().replace(/^["']|["']$/g, "");
 }
 
@@ -152,7 +111,7 @@ function manusToJobVacancies(manusVacancies: ManusVacancy[]): JobVacancy[] {
       company: v.company || "",
       location: v.location || "",
       salary: v.salary,
-      match: v.match ?? (80 - i * 2),
+      match: v.match ?? 80 - i * 2,
       tags: v.tags || [],
       remote,
       area: v.area,
@@ -164,20 +123,18 @@ function manusToJobVacancies(manusVacancies: ManusVacancy[]): JobVacancy[] {
 
 /**
  * Passo 3: Busca vagas via Manus (com polling).
- * Aceita searchQuery já gerado ou gera internamente se não fornecido.
  */
 export async function searchVacancies(
-  sessionId: string,
+  vectorStoreId: string,
   resumeInfo: string,
   searchQuery?: string,
   onProgress?: (text: string) => void
 ): Promise<JobVacancy[]> {
-  // Gera a query se não foi passada
-  const query = searchQuery ?? await buildVacancyQuery(sessionId, resumeInfo);
+  const query =
+    searchQuery ?? (await buildVacancyQuery(vectorStoreId, resumeInfo));
   console.log("[searchVacancies] query:", query);
   onProgress?.(`Query: ${query}`);
 
-  // Manus cria a task, faz scraping + análise e retorna quando completo
   const manusVacancies = await searchVacanciesWithManus(
     query,
     resumeInfo,

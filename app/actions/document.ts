@@ -1,87 +1,87 @@
-import axios from "axios";
-import { apiIaUrl, apiIaToken } from "./constant";
-
 export interface UploadResponse {
-  userId: string;
-  botId: string;
-  files: {
-    status: string;
-    originalname: string;
-    createdAt: string;
-  }[];
-  webhook_url?: string;
+  openaiFileId: string;
+  vectorStoreId: string;
+  fileName: string;
+  warnings?: string[];
 }
 
 export async function uploadDocument(
-  botId: string,
   file: File,
-  webhookUrl?: string
+  existingVectorStoreId?: string,
+  existingFileId?: string,
+  name?: string
 ): Promise<UploadResponse> {
   const formData = new FormData();
-  formData.append("botId", botId);
-  formData.append("files", file);
-  if (webhookUrl) {
-    formData.append("webhook_url", webhookUrl);
+  formData.append("file", file);
+  if (existingVectorStoreId) {
+    formData.append("vectorStoreId", existingVectorStoreId);
+  }
+  if (existingFileId) {
+    formData.append("existingFileId", existingFileId);
+  }
+  if (name) {
+    formData.append("name", name);
   }
 
-  const response = await axios.post(
-    `${apiIaUrl}/documents/client/external/files`,
-    formData,
-    {
-      headers: {
-        "x-api-key": apiIaToken,
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
-  return response.data;
-}
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
 
-export async function uploadVacanciesFile(
-  botId: string,
-  vacancies: object[]
-): Promise<void> {
-  const json = JSON.stringify(vacancies, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const file = new File([blob], "vagas_encontradas.json", { type: "application/json" });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Erro no upload: ${response.statusText}`);
+  }
 
-  const formData = new FormData();
-  formData.append("botId", botId);
-  formData.append("files", file);
-
-  await axios.post(
-    `${apiIaUrl}/documents/client/external/files`,
-    formData,
-    {
-      headers: {
-        "x-api-key": apiIaToken,
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
+  return response.json();
 }
 
 export async function deleteDocument(
-  botId: string,
-  fileName: string
+  openaiFileId: string,
+  vectorStoreId: string
 ): Promise<void> {
-  await axios.delete(`${apiIaUrl}/documents/client/external/files`, {
-    headers: {
-      "x-api-key": apiIaToken,
-      "Content-Type": "application/json",
-    },
-    data: {
-      botId,
-      name: fileName,
-    },
+  const response = await fetch("/api/upload", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ openaiFileId, vectorStoreId }),
   });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || "Erro ao deletar arquivo");
+  }
+}
+
+/**
+ * Sobe o JSON das vagas encontradas como arquivo extra no vector store do usuário.
+ * Isso permite que o chat responda perguntas sobre vagas específicas com contexto real.
+ */
+export async function uploadVacanciesToVectorStore(
+  vectorStoreId: string,
+  vacancies: object[]
+): Promise<void> {
+  const content = JSON.stringify(vacancies, null, 2);
+
+  const response = await fetch("/api/upload", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      vectorStoreId,
+      content,
+      filename: "vagas_encontradas.json",
+      mimetype: "application/json",
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || "Erro ao subir vagas para o vector store");
+  }
 }
 
 export interface StreamRequest {
-  sessionId: string;
+  vectorStoreId: string;
   question: string;
-  language?: string;
-  saveHistory?: boolean;
 }
 
 export async function streamMessage(
@@ -90,24 +90,17 @@ export async function streamMessage(
   onDone: () => void,
   onError: (error: string) => void
 ): Promise<void> {
-  console.log("[streamMessage] sessionId:", request.sessionId);
-
-  if (!request.sessionId) {
-    onError("sessionId inválido ou nulo. Recarregue a página e tente novamente.");
+  if (!request.vectorStoreId) {
+    onError("vectorStoreId inválido. Recarregue a página e tente novamente.");
     return;
   }
 
-  const response = await fetch(`${apiIaUrl}/documents/client/external/stream`, {
+  const response = await fetch("/api/chat/stream", {
     method: "POST",
-    headers: {
-      "x-api-key": apiIaToken || "",
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      sessionId: request.sessionId,
+      vectorStoreId: request.vectorStoreId,
       question: request.question,
-      language: request.language || "pt-BR",
-      saveHistory: request.saveHistory !== false,
     }),
   });
 

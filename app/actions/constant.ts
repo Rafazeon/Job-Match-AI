@@ -1,2 +1,2 @@
-export const apiIaUrl = process.env.NEXT_PUBLIC_API_IA_URL;
-export const apiIaToken = process.env.NEXT_PUBLIC_API_IA_TOKEN;
+// Arquivo mantido para compatibilidade — variáveis eBotMaker removidas.
+// As chamadas de IA agora usam a OpenAI diretamente via /api/chat/* e /api/upload.

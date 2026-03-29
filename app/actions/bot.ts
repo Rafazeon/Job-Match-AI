@@ -1,39 +1,36 @@
-import axios from "axios";
-import { apiIaUrl, apiIaToken } from "./constant";
-
 export interface BotResponse {
-  userId: string;
-  name: string;
-  avatar: string;
-  show_relevant_questions: boolean;
-  show_fonts: boolean;
-  enable_image_creation: boolean;
-  custom_prompt: string;
-  custom_hybrid_search: string;
-  storage: unknown[];
   id: string;
-  createdAt: string;
-  updatedAt: string;
+  name: string;
+  vectorStoreId: string;
 }
 
-export async function createBot(name: string): Promise<BotResponse> {
-  const response = await axios.post(
-    `${apiIaUrl}/bots/client/external`,
-    {
-      webhookId: process.env.BOT_EBOTMAKER_WEBHOOK_ID,
-      name,
-      show_relevant_questions: true,
-      show_fonts: false,
-      enable_image_creation: false,
-      custom_prompt:
-        "Você é um assistente especializado em análise de currículos e busca de vagas de emprego. Analise o currículo do usuário e ajude-o a encontrar as melhores oportunidades de trabalho compatíveis com seu perfil.",
-    },
-    {
-      headers: {
-        "x-api-key": apiIaToken,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-  return response.data;
+/**
+ * No novo fluxo com OpenAI, o "bot" é representado pelo vector store.
+ * A criação real do vector store acontece durante o upload do arquivo
+ * via /api/upload. Aqui apenas retornamos um objeto local com o ID
+ * salvo no localStorage (se existir).
+ */
+export function getBotFromStorage(): BotResponse | null {
+  if (typeof window === "undefined") return null;
+  const id = localStorage.getItem("job_bot_id");
+  const vectorStoreId = localStorage.getItem("job_vector_store_id");
+  if (!id || !vectorStoreId) return null;
+  return { id, name: "Currículo - Site Vagas", vectorStoreId };
+}
+
+export function saveBotToStorage(id: string, vectorStoreId: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("job_bot_id", id);
+  localStorage.setItem("job_vector_store_id", vectorStoreId);
+}
+
+export function clearBotFromStorage(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("job_bot_id");
+  localStorage.removeItem("job_vector_store_id");
+  localStorage.removeItem("job_openai_file_id");
+  localStorage.removeItem("job_file_name");
+  localStorage.removeItem("job_session_id");
+  localStorage.removeItem("job_resume_info");
+  localStorage.removeItem("job_vacancies");
 }

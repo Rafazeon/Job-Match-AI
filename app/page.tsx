@@ -16,29 +16,30 @@ interface SessionData {
   fileName: string;
   vacancies: JobVacancy[];
   loadingMindMap?: boolean;
+  vectorStoreId: string;
 }
 
 export default function Home() {
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
-  // Recupera sessão salva no localStorage ao carregar
   useEffect(() => {
     setHydrated(true);
     const botId = localStorage.getItem("job_bot_id");
     const sessionId = localStorage.getItem("job_session_id");
     const clientId = localStorage.getItem("job_client_id");
     const fileName = localStorage.getItem("job_file_name");
+    const vectorStoreId = localStorage.getItem("job_vector_store_id");
     const vacanciesRaw = localStorage.getItem("job_vacancies");
 
-    if (botId && sessionId && clientId && fileName) {
+    if (botId && sessionId && clientId && fileName && vectorStoreId) {
       let vacancies: JobVacancy[] = [];
       try {
         vacancies = vacanciesRaw ? JSON.parse(vacanciesRaw) : [];
       } catch {
         vacancies = [];
       }
-      setSessionData({ botId, sessionId, clientId, fileName, vacancies });
+      setSessionData({ botId, sessionId, clientId, fileName, vacancies, vectorStoreId });
     }
   }, []);
 
@@ -47,13 +48,13 @@ export default function Home() {
     localStorage.setItem("job_session_id", data.sessionId);
     localStorage.setItem("job_client_id", data.clientId);
     localStorage.setItem("job_file_name", data.fileName);
+    localStorage.setItem("job_vector_store_id", data.vectorStoreId);
     if (data.vacancies.length > 0) {
       localStorage.setItem("job_vacancies", JSON.stringify(data.vacancies));
     }
     setSessionData(data);
   };
 
-  // Chamado quando o Manus finaliza e temos as vagas reais
   const handleVacanciesReady = (vacancies: JobVacancy[]) => {
     localStorage.setItem("job_vacancies", JSON.stringify(vacancies));
     setSessionData((prev) =>
@@ -62,7 +63,6 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    // Mantém job_bot_id e job_client_id — o bot é reutilizado no próximo upload
     localStorage.removeItem("job_session_id");
     localStorage.removeItem("job_file_name");
     localStorage.removeItem("job_vacancies");
@@ -87,6 +87,7 @@ export default function Home() {
         fileName={sessionData.fileName}
         vacancies={sessionData.vacancies}
         loadingMindMap={sessionData.loadingMindMap ?? false}
+        vectorStoreId={sessionData.vectorStoreId}
         onVacanciesReady={handleVacanciesReady}
         onReset={handleReset}
       />
