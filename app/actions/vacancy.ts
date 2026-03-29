@@ -45,19 +45,19 @@ async function callChatSend(
  * Passo 1: Extrai análise completa do currículo em texto rico
  */
 export async function extractResumeInfo(vectorStoreId: string): Promise<string> {
-  const prompt = `Faça uma análise completa e detalhada do currículo enviado, extraindo todas as informações relevantes. Escreva em texto corrido, sendo o mais rico e completo possível:
+  const prompt = `Perform a complete and detailed analysis of the uploaded resume, extracting all relevant information. Write in continuous prose, as rich and thorough as possible:
 
-- Identidade profissional: cargo atual ou desejado, área de atuação e nível de senioridade
-- Resumo da trajetória: empresas, cargos ocupados, tempo de experiência em cada área e principais responsabilidades
-- Stack técnica completa: todas as linguagens, frameworks, ferramentas, plataformas e tecnologias mencionadas
-- Projetos e realizações relevantes: o que construiu, entregou ou liderou
-- Formação acadêmica e certificações
-- Idiomas e nível
-- Localização e disponibilidade (remoto, híbrido, presencial)
-- Perfil comportamental e soft skills identificados
-- Palavras-chave mais relevantes para busca de vagas compatíveis com esse perfil
+- Professional identity: current or desired job title, area of expertise, and seniority level
+- Career summary: companies, roles held, years of experience in each area, and main responsibilities
+- Full technical stack: all programming languages, frameworks, tools, platforms, and technologies mentioned
+- Relevant projects and achievements: what was built, delivered, or led
+- Academic background and certifications
+- Languages and proficiency levels
+- Location and availability (remote, hybrid, on-site)
+- Behavioral profile and soft skills identified
+- Most relevant keywords for finding compatible job vacancies
 
-Seja detalhado — quanto mais contexto, melhor será o match com as vagas.`;
+Be thorough — the more context, the better the vacancy match will be.`;
 
   return await callChatSend(vectorStoreId, prompt);
 }
@@ -69,15 +69,15 @@ export async function buildVacancyQuery(
   vectorStoreId: string,
   resumeInfo: string
 ): Promise<string> {
-  const prompt = `Com base na análise do currículo abaixo, gere UMA query de busca curta e objetiva para encontrar vagas compatíveis.
+  const prompt = `Based on the resume analysis below, generate ONE short and objective search query to find compatible job vacancies.
 
-A query deve conter apenas: cargo principal + nível de senioridade + principais tecnologias/habilidades (máx. 5) + localização.
-Responda APENAS com a query, sem explicações, sem aspas, sem pontuação extra.
+The query must contain only: main job title + seniority level + top technologies/skills (max 5) + location.
+Reply with the query ONLY — no explanations, no quotes, no extra punctuation.
 
-Exemplo de resposta esperada:
-Desenvolvedor Frontend Pleno React TypeScript Next.js São Paulo
+Example of expected response:
+Senior Frontend Developer React TypeScript Next.js São Paulo
 
-ANÁLISE DO CURRÍCULO:
+RESUME ANALYSIS:
 ${resumeInfo}`;
 
   const query = await callChatSend(vectorStoreId, prompt);

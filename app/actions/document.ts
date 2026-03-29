@@ -79,9 +79,15 @@ export async function uploadVacanciesToVectorStore(
   }
 }
 
+export interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface StreamRequest {
   vectorStoreId: string;
   question: string;
+  history?: HistoryMessage[];
 }
 
 export async function streamMessage(
@@ -101,6 +107,7 @@ export async function streamMessage(
     body: JSON.stringify({
       vectorStoreId: request.vectorStoreId,
       question: request.question,
+      history: request.history ?? [],
     }),
   });
 

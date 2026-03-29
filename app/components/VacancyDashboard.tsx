@@ -38,14 +38,14 @@ export default function VacancyDashboard({ vacancies, loading = false }: Vacancy
       const resumeInfo = localStorage.getItem("job_resume_info");
       if (!resumeInfo || resumeInfo.trim().length < 30) return;
 
-      const prompt = `Com base no texto abaixo, extraia o nome completo e o nível de senioridade do candidato.
+      const prompt = `From the text below, extract the candidate's full name and seniority level.
 
-Responda SOMENTE neste formato JSON (sem markdown, sem explicações):
-{"name":"Nome Completo","seniority":"Sênior"}
+Reply ONLY in this JSON format (no markdown, no explanations):
+{"name":"Full Name","seniority":"Senior"}
 
-Níveis válidos para seniority: Estagiário, Júnior, Pleno, Sênior, Especialista, Gerente, Diretor.
+Valid seniority values: Intern, Junior, Mid-level, Senior, Specialist, Manager, Director.
 
-TEXTO DO CURRÍCULO:
+RESUME TEXT:
 ${resumeInfo.slice(0, 3000)}`;
 
       try {

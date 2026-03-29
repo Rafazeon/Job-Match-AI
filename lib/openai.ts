@@ -109,15 +109,15 @@ export async function deleteFileFromOpenAI(
   }
 }
 
-const SYSTEM_PROMPT_RESUME = `Você é um assistente especializado em análise de currículos e busca de vagas de emprego.
-Priorize sempre as informações do currículo enviado para responder.
-Quando o documento não contiver a informação solicitada, você pode complementar com conhecimento geral, mas indique claramente.
-Responda sempre em português brasileiro.`;
+const SYSTEM_PROMPT_RESUME = `You are a specialist assistant in resume analysis and job vacancy search.
+Always prioritize information from the uploaded documents to answer questions.
+When the document does not contain the requested information, you may supplement with general knowledge, but clearly indicate when doing so.
+LANGUAGE RULE: Always detect the language of the user's message and respond strictly in that same language, regardless of the language of the documents.`;
 
-const SYSTEM_PROMPT_JSON = `Você é um assistente especializado em análise de currículos e busca de vagas de emprego.
-Priorize sempre as informações do currículo enviado para responder.
-Responda sempre em português brasileiro.
-IMPORTANTE: Retorne APENAS JSON puro e válido, sem texto adicional, sem markdown, sem blocos de código.`;
+const SYSTEM_PROMPT_JSON = `You are a specialist assistant in resume analysis and job vacancy search.
+Always prioritize information from the uploaded documents to answer questions.
+Detect the language used in the resume or in the user's message and respond in that same language.
+IMPORTANT: Return ONLY valid, pure JSON — no extra text, no markdown, no code blocks.`;
 
 export async function callAIWithVectorStore(
   vectorStoreId: string,

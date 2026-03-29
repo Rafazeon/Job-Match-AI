@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { streamMessage } from "../actions/document";
+import { streamMessage, HistoryMessage } from "../actions/document";
 import { clearChatHistory } from "../actions/chat";
 import VacancyDashboard from "./VacancyDashboard";
 import { JobVacancy } from "../actions/vacancy";
@@ -34,6 +34,27 @@ const WELCOME_MESSAGE: Message = {
   createdAt: new Date().toISOString(),
 };
 
+function loadMessagesFromStorage(sessionId: string): Message[] {
+  try {
+    const raw = localStorage.getItem(`chat_messages_${sessionId}`);
+    if (raw) {
+      const parsed: Message[] = JSON.parse(raw);
+      if (parsed.length > 0) return parsed;
+    }
+  } catch { /* ignora */ }
+  return [WELCOME_MESSAGE];
+}
+
+function saveMessagesToStorage(sessionId: string, messages: Message[]): void {
+  try {
+    // Não persiste mensagens que ainda estão em streaming
+    const settled = messages.map((m) =>
+      m.isStreaming ? { ...m, isStreaming: false } : m
+    );
+    localStorage.setItem(`chat_messages_${sessionId}`, JSON.stringify(settled));
+  } catch { /* ignora */ }
+}
+
 export default function ChatInterface({
   sessionId,
   fileName,
@@ -43,7 +64,9 @@ export default function ChatInterface({
   onVacanciesReady,
   onReset,
 }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>(() =>
+    loadMessagesFromStorage(sessionId)
+  );
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("chat");
@@ -87,6 +110,11 @@ export default function ChatInterface({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Persiste mensagens no localStorage sempre que mudam
+  useEffect(() => {
+    saveMessagesToStorage(sessionId, messages);
+  }, [messages, sessionId]);
+
   useEffect(() => {
     if (!isLoading) {
       textareaRef.current?.focus();
@@ -117,8 +145,18 @@ export default function ChatInterface({
     setInput("");
     setIsLoading(true);
 
+    // Build history: settled messages only, last 20 to cap token usage
+    const HISTORY_WINDOW = 20;
+    const history: HistoryMessage[] = messages
+      .filter((m) => m.id !== "welcome" && !m.isStreaming && m.text.trim())
+      .slice(-HISTORY_WINDOW)
+      .map((m) => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+
     await streamMessage(
-      { vectorStoreId, question },
+      { vectorStoreId, question, history },
       (chunk) => {
         setMessages((prev) =>
           prev.map((m) =>
@@ -145,7 +183,7 @@ export default function ChatInterface({
         setIsLoading(false);
       }
     );
-  }, [input, isLoading, vectorStoreId]);
+  }, [input, isLoading, vectorStoreId, messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -156,6 +194,7 @@ export default function ChatInterface({
 
   const handleClearChat = () => {
     clearChatHistory(sessionId);
+    localStorage.removeItem(`chat_messages_${sessionId}`);
     setMessages([WELCOME_MESSAGE]);
     setShowClearConfirm(false);
   };
